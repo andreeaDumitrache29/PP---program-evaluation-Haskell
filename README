@@ -1,0 +1,116 @@
+DUMITRACHE DANIELA ANDREEA
+321CB
+Tema 2 - Paradigme de programare
+
+	Am implementat partea de evaluare. Pentru aceasta am declarat 2 tipuri noi:
+	- Values = [(String, Int)] pentru a face maparea dintre o variabila si valoarea
+	ei;
+	- Res = (Either String Int, Values, Bool) pentru rezultatul evaluarii unui program:
+		- Either String Int: a avut loc o eroare sau s-a calculat corect o valoare
+		- Values: lista de mapari (variabila, valoare) care poate fi modificata in 
+		timpul evaluarii programului, deci trebuie daca ca parametru
+		- Bool: True daca am intalnit un return sau o eroare si False altfel;
+		In aceste cazuri programele urmatoare nu se mai evalueaza, ci doar paseaza
+		pana la final valoarea pentru care respectivul Bool a devenit True.
+
+	Am inceput prin evaluarea unei expresii. Aceasta evaluare poate fi de doua 
+tipuri: pentru expresii care intorc o eroare sau un Int (Add, Sub, Mult) 
+si pentru expresii care intorc o eroare sau un Bool: Smaller si Equal.
+Evaluarea acestora se produce in acelasi mod, deoarece toate tipurile
+enumerate de expresii primesc alte 2 expresii ca parametru:
+
+ 	1) se evalueaza prima expresie componenta: daca a avut loc o eroare aceasta
+	este pasata mai departe si evaluarea urmatoarei expresii nu mai are loc
+	2) se evalueaza a doua expresie: daca a avut o eroare aceasta este pasata mai
+	departe
+	3) se efectuaza operatia corespunzatoare intre rezultatele celor
+	doua evaluari: + pentru Add, - pentru Sub, * pentru Mult, < pentru Smaller
+	si == pentru Equal;
+
+	Pentru evaluarea unei expresii de tip Value se intoarce direct valoarea.
+	Pentru evaluarea unui Symbol: se verifica in lista de mapari daca exista o 
+intrare corespunzatoare variabilei respective: daca da, se intoarce valoarea
+corespunzatoare; daca nu, se intoarce eroarea "Uninitialized variable".
+
+	Am realizat doua functii pentru evaluarea expresiilor:
+	1) evalExpr care determina tipul expresiei primite (care nu returneaza un
+bool) si apeleaza functia de evaluare corespunzatoare: evalAdd, evalSub,
+evalMult, sau realizeaza evaluarea tipurilor Symbol si Value in modul descris mai sus;
+	2) evalExprBool: determina tipul expresiei primite si apeleaza evalSmaller sau
+evalEqual (aceste expresii returneaza un Bool);
+
+	Pentru evaluarea programelor (evalAdt) folosesc o functie auxiliara (evalAdtaux)
+care primeste un prog si o lista de mapari si intoarce un Res. Am facut
+acest lucru deoarece lista de mapari se poate modifica in timpul evaluarii 
+si astfel ea este pasata de la program la program cu actualizarile de rigoare, 
+valorile nou introduse putand fi astfel folosite si de urmatoarele programe;
+
+	Functia auxiliara este apelata din evalAdtsi la sfarsitul rularii acesteia se
+verifica rezultatul intors: 
+	a) in caz ca a avut loc o eroare atunci ea este afisata;
+	b) daca membrul Bool din Res este False inseamna si nu s-a produs nicio eroare
+	inseamna ca nu s-a intalnit niciun return, deci se returneaza eroarea "Missing return";
+	c) Daca totul a fost in regula se extrage valoarea de Right din Res-ul returnat de
+	evalAdtaux si se returneaza.
+
+	Functia evalAdtaux primeste un program de evaluat si o lista de mapari si evalueaza
+programul prin apelarea unei functii specifice tipului de program primit.
+	
+	Astfel, pentru fiecare tip de program in parte, am construit o functie de evaluare
+separata care este apelata in mod corspunzator de functia de evaluare auxiliara:
+	
+	- evalAsgn: se evalueaza expresia primita de Asgn prin si se verifica rezultatul:
+	in caz de eroare se paseaza mai departe mesajul de eroare primit;
+	altfel se construieste o pereche de tip (variabila, valoare) cu noua
+	valoare calculata si variabila primitas si se insereaza in lista de mapari;
+
+	- Eq: se evalueaza programul Asgn primit si se returneaza rezultatul intors
+	de acesta;
+
+	- Seq: se evalueaza primul program primit de Seq si se paseaza mai departe
+	posibilele erori; daca nu a aparut nicio eroare se evalueaza si al doilea
+	program: daca nu a aparut nicio eroare se returneaza rezultatul celui de-al
+	doilea program, altfel se returneaza eroarea primita;
+
+	- If: se evalueaza conditia si se returneaza eventualele erori aparute
+	Daca nu a aparut nicio eroare se verifica rezultatul evaluarii conditiei:
+	daca este True, atunci se returneaza evaluarea primului program primit de If;
+	altfel se returneaza evaluarea ceilui de-al doilea program primit de If;
+
+	- For: am considerat ca o bucla for functioneaza dupa principul: 
+		- se efectueaza intai prima operatie de assign;
+		- se evalueaza conditia:
+			- daca este adevarata atunci se executa programul din corpul for-ului 
+			si se face urmatoarea asignare;
+			- conditie falsa inseamna ca nu se intra in for, deci se va returna
+			ultima valoare calculata
+		- repeta pasi
+
+	Pentru aceasta am considerat 4 functii: 
+	1) evalFor care face asignarea initiala, verifica aparitia erorilor si apeleaza auxFor1
+
+	2) auxFor1 care evalueaza conditia, executa programul o data si paseaza
+	rezultatul obtinut pe post de acumulator functiei auxFor2 (in caz ca nu
+	exista erori sau ca nu se ajunge la return). Daca conditia nu se
+	respecta nici macar pentru prima valoarea (nu se intra deloc in for), functia
+	auxFor1 primeste un rezultat acumulator (rezultatul intors de prima
+	asignare ) care este returnat.
+
+	3) auxFor2: realizeaza a doua asignare si evalueaza conditia: daca este
+	adevarata atunci se evalueaza programul si se paseaza valoarea nou calculata
+	drept acumulator intr-un apel recursiv al auxfor2;
+	daca conditia este falsa atunci se va returna acumulatorul (ultima
+	valoare calculata pentru program in care conditia era respectata),
+	cu precizarea ca se mai apeleaza functia lastAssign, pentru a se
+	executa si ultima atribuire (altfel contorul ar fi iesit din for
+	cu ultima valoare care respecta conditia, nu cu prima valoare care nu
+	o respecta);
+	OBS: la fiecare noua evaluare de program se verifica daca s-au produs
+	erori sau daca s-a ajuns la return
+
+	- Assert: se evalueaza expresia primita si se verifica aparitia erorilor
+	sau return-ului; daca tot este in regula se verifica rezultatul evaluarii:
+	daca expresia s-a evaluat la False atunci se returneaza mesajul "Assert
+	failed"; daca expresia a fost adevarata atunci nu ne intereseaza ce returneaza
+	Assert, deoarece aceasta valoare nu este folosita mai departe, deci se va returna
+	valoarea 1, lista asa cum a fost primita si False (nu am intalnit return sau erori)
